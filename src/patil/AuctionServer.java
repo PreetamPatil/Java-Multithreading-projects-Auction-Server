@@ -63,7 +63,7 @@ public class AuctionServer {
 	/**
 	 * Server restriction constants:
 	 */
-	public static final int maxBidCount = 20; // The maximum number of bids at any given time for a buyer.
+	public static final int maxBidCount = 10; // The maximum number of bids at any given time for a buyer.
 	public static final int maxSellerItems = 20; // The maximum number of items that a seller can submit at any given time.
 	public static final int serverCapacity = 80; // The maximum number of active items at a given time.
 
@@ -101,23 +101,14 @@ public class AuctionServer {
 	// List of buyers and how many items on which they are currently bidding.
 	private HashMap<String, Integer> itemsPerBuyer = new HashMap<String, Integer>();
 
-        
 	// Object used for instance synchronization if you need to do it at some point 
 	// since as a good practice we don't use synchronized (this) if we are doing internal
 	// synchronization.
 	//
 	// private Object instanceLock = new Object(); 
-        
-        int count = 0;
-        
+
         private final Lock lock1 = new ReentrantLock(); // itemsUpForBidding
-        private final Lock lock2 = new ReentrantLock(); // itemPerSeller 
-        private final Lock lock3 = new ReentrantLock(); // itemsPerBuyer,highestBids,highestBidder
 
-
-
-        
-        // reentrant lock used for synchronizing purpose.
         
         
 	/*
@@ -139,44 +130,50 @@ public class AuctionServer {
 	 */
 	public int submitItem(String sellerName, String itemName, int lowestBiddingPrice, int biddingDurationMs)
 	{
-               
-            
+		
                      lock1.lock();
-                     System.out.println("submit item is called");
+
                      if (itemsUpForBidding.size() < serverCapacity) {
-                        lock1.unlock();
-                        lock2.lock();
-                         
+                        
+                       //  lock2.lock();
                          if (itemsPerSeller.containsKey(sellerName)) {
                              
                              if (itemsPerSeller.get(sellerName) < maxSellerItems) {
-                          
+                                 
+                                 
                                  itemsPerSeller.put(sellerName, itemsPerSeller.get(sellerName)+1);
-                                 lock2.unlock();
-                                 lock1.lock();
+                                 
+                         //        lock6.lock();
                                  lastListingID = lastListingID+1;
                                  itemsUpForBidding.add(new Item(sellerName, itemName, lastListingID, lowestBiddingPrice, biddingDurationMs));
-
+                                 
                                  itemsAndIDs.put(lastListingID, new Item(sellerName, itemName, lastListingID, lowestBiddingPrice, biddingDurationMs));
-
+                                 
                                  lock1.unlock();
+                           //      lock2.unlock();
+                             //    lock6.unlock();
                                  return lastListingID;
                                  
                                  
                              }else{
-                                  lock2.unlock();
+                                  lock1.unlock();
+                               //   lock2.unlock();
+                                 // lock6.unlock();
                                  return -1;
                              }
                              
                          }else{
                              itemsPerSeller.put(sellerName, 1);
-                             lock2.unlock();
-                              lock1.lock();
-
+                             //lock6.lock();
                              lastListingID = lastListingID +1;
                              itemsUpForBidding.add(new Item(sellerName, itemName, lastListingID, lowestBiddingPrice, biddingDurationMs));
-                             itemsAndIDs.put(lastListingID, new Item(sellerName, itemName, lastListingID, lowestBiddingPrice, biddingDurationMs));
-                             lock1.unlock();
+                                 itemsAndIDs.put(lastListingID, new Item(sellerName, itemName, lastListingID, lowestBiddingPrice, biddingDurationMs));
+                                 
+                             
+                             
+                                  lock1.unlock();
+                               //   lock2.unlock();
+                                //  lock6.unlock();
                                   return lastListingID;
                          }
                          
@@ -202,7 +199,6 @@ public class AuctionServer {
 	{
             
                 lock1.lock();
-                System.out.println("get items is called");
                 List<Item> items = new ArrayList<Item>(itemsUpForBidding);
                 lock1.unlock();
             
@@ -222,7 +218,7 @@ public class AuctionServer {
             
 		
             lock1.lock();
-            System.out.println("submit bid is called");
+            
             if (itemsUpForBidding.size() > 0) {
                 
                 boolean checkListingID = false;
@@ -241,45 +237,50 @@ public class AuctionServer {
                     
                     if (itemsUpForBidding.get(itemNumber).biddingOpen()) {
                         
-                        
-                        lock3.lock();
-                        
+                       // lock3.lock();
                         if (itemsPerBuyer.containsKey(bidderName)) {
                            
                             if (itemsPerBuyer.get(bidderName) < maxBidCount) {
-                                
-                                
+                             //   lock4.lock();
                                 if (highestBids.containsKey(listingID)) {
                                     
                                     if (highestBids.get(listingID) > biddingAmount || highestBidders.get(listingID).equals(bidderName)) {
                                         
-                                        lock3.unlock();
                                         lock1.unlock();
+                         //               lock3.unlock();
+                           //             lock4.unlock();
+                                        
                                         return false;
                                     }else
                                     {
+                               //         lock5.lock();
                                         highestBids.put(listingID, biddingAmount);
                                         highestBidders.put(listingID, bidderName);
                                         itemsPerBuyer.put(bidderName, itemsPerBuyer.get(bidderName)+1);
-                                        lock3.unlock();
                                         lock1.unlock();
+                                 //       lock3.unlock();
+                                   //     lock4.unlock();                                        
+                                    //    lock5.unlock();
                                         return true;
                                     }
                                     
                                 }else
-                                {  // lock3.unlock();
-                                    //lock1.lock();
+                                {
                                     if (biddingAmount >= itemsUpForBidding.get(itemNumber).lowestBiddingPrice()) {
-                                        lock1.unlock();
-                                      //  lock3.lock();
+                                      //  lock5.lock();
                                         highestBids.put(listingID, biddingAmount);
                                         highestBidders.put(listingID, bidderName);
                                         itemsPerBuyer.put(bidderName, itemsPerBuyer.get(bidderName)+1);
-                                        lock3.unlock();
+                                        lock1.unlock();
+                         //               lock3.unlock();
+                           //             lock4.unlock();
+                             //           lock5.unlock();
                                         return true;
                                         
                                     }else{
                                         lock1.unlock();
+                               //         lock3.unlock();
+                                 //       lock4.unlock();
 
                                         return false;
                                     }
@@ -287,7 +288,8 @@ public class AuctionServer {
                                 
                             }else
                             {
-                                lock3.unlock();
+                                lock1.unlock();
+                               // lock3.unlock();
 
                                 return false;
                             }
@@ -298,35 +300,45 @@ public class AuctionServer {
                         {
                             
                            itemsPerBuyer.put(bidderName,1);
+                           //lock4.lock();
                            if (highestBids.containsKey(listingID)) {
                                     
                                     if (highestBids.get(listingID) > biddingAmount || highestBidders.get(listingID).equals(bidderName)) {
-                                        lock3.unlock();
                                         lock1.unlock();
+                             //           lock3.unlock();
+                               //         lock4.unlock();
+
 
                                         return false;
                                     }else
                                     {
+                                 //       lock5.lock();
                                         highestBids.put(listingID, biddingAmount);
                                         highestBidders.put(listingID, bidderName);
-                                        lock3.unlock();
                                         lock1.unlock();
+                                   //     lock3.unlock();
+                                     //   lock4.unlock();
+                                       // lock5.unlock();
                                         return true;
                                     }
                                     
                                 }else
                                 {
-                                 //   lock3.unlock();
+                                    
                                     if (biddingAmount >= itemsUpForBidding.get(itemNumber).lowestBiddingPrice()) {
-                                        lock1.unlock();
-                                    //    lock3.lock();
+                                       // lock5.lock();                                        
                                         highestBids.put(listingID, biddingAmount);
                                         highestBidders.put(listingID, bidderName);
-                                        lock3.unlock();
+                                        lock1.unlock();
+                                       // lock3.unlock();
+                                       // lock4.unlock();
+                                       // lock5.unlock();
                                         return true;
                                         
                                     }else
                                         lock1.unlock();
+                                       // lock3.unlock();
+                                       // lock4.unlock();            
 
                                         return false;
                                 }
@@ -334,6 +346,12 @@ public class AuctionServer {
                         }
                         
                     }else{
+                           
+                                String sellerName = itemsUpForBidding.get(itemNumber).seller();
+                                itemsUpForBidding.remove(itemNumber);
+                                
+                                itemsPerSeller.put(sellerName, itemsPerSeller.get(sellerName)-1);
+
                         lock1.unlock();
 
                         return false;
@@ -372,8 +390,9 @@ public class AuctionServer {
                 boolean checkListingID = false;
                 int itemNumber = 0;
                 lock1.lock();
-                
-                System.out.println("check bis status is called");
+               // lock2.lock();
+               // lock3.lock();
+               // lock5.lock();
                 
                 for (int i = 0; i < itemsUpForBidding.size(); i++) {
                     
@@ -389,15 +408,13 @@ public class AuctionServer {
                         
                     if (itemsUpForBidding.get(itemNumber).biddingOpen()) {
                         lock1.unlock();
+                 //       lock2.unlock();
+                   //     lock3.unlock();
+                     //   lock5.unlock();
                         return 2;
                         
                     }else
-                        
                     {   
-                        // change here
-                        lock2.lock();
-                        lock2.unlock();
-                        lock3.lock();
                         if (highestBidders.get(listingID).equals(bidderName)) {
                             
                             itemsPerBuyer.put(bidderName, itemsPerBuyer.get(bidderName)-1 );
@@ -406,38 +423,26 @@ public class AuctionServer {
                             
                             System.out.println("Sold Items: "+soldItemsCount);
                             System.out.println("Revenue: "+ revenue);
-                            lock3.unlock();
+                            
                             String sellerName = itemsUpForBidding.get(itemNumber).seller();
                             itemsUpForBidding.remove(itemNumber);
-                            lock1.unlock();
-                            lock2.lock();
                             itemsPerSeller.put(sellerName, itemsPerSeller.get(sellerName)-1);
                             
-                            lock2.unlock();
+                            lock1.unlock();
+                       //     lock2.unlock();
+                         //   lock3.unlock();
+                           // lock5.unlock();
 
                             return 1;
                             
                         }else
                         {
                             
-                            String highestBidderName = highestBidders.get(listingID);
-                           
-                                itemsPerBuyer.put(highestBidderName, itemsPerBuyer.get(highestBidderName)-1 );
-                                soldItemsCount = soldItemsCount + 1;
-                                revenue = revenue + highestBids.get(listingID);
-                                
-                                System.out.println("Sold Items: "+soldItemsCount);
-                                System.out.println("Revenue: "+ revenue);
-                                
-                                lock3.unlock();
-                                
-                                String sellerName = itemsUpForBidding.get(itemNumber).seller();
-                                itemsUpForBidding.remove(itemNumber);
+                               
                                 lock1.unlock();
-                                
-                                lock2.lock();
-                                itemsPerSeller.put(sellerName, itemsPerSeller.get(sellerName)-1);
-                                lock2.unlock();
+                             //   lock2.unlock();
+                               // lock3.unlock();
+                               // lock5.unlock();
                                 
                             return 3;
                             
@@ -449,6 +454,9 @@ public class AuctionServer {
                 else
                 {
                     lock1.unlock();
+                  //  lock2.unlock();
+                   // lock3.unlock();
+                   // lock5.unlock();
                     return 3;
                 }
 
@@ -464,7 +472,6 @@ public class AuctionServer {
 	{
 	
                 lock1.lock();
-                System.out.println("item price is called");
                 boolean checkListingID = false;
                 int itemNumber = 0;
                 for (int i = 0; i < itemsUpForBidding.size(); i++) {
@@ -476,31 +483,28 @@ public class AuctionServer {
                     }
                     
                 }
+        
      
-            lock3.lock();
+//            lock4.lock();
+            
             if (highestBids.containsKey(listingID)) {  
                 int minValue = highestBids.get(listingID);
+  //              lock4.unlock();
                 lock1.unlock();
-                lock3.unlock();
                 return minValue;
                 
             }
             else if (checkListingID){
-            
-            System.out.println("Size: "+itemsUpForBidding.size());
-                
             int minValue = itemsUpForBidding.get(itemNumber).lowestBiddingPrice();
-
-            
             lock1.unlock();
-            lock3.unlock();
+    //        lock4.unlock();
             return minValue;
             }
         
             else
             {
+      //          lock4.unlock();
                 lock1.unlock();
-                lock3.unlock();
                 return -1;
             }
             		
@@ -515,22 +519,18 @@ public class AuctionServer {
 	public Boolean itemUnbid(int listingID)
 	{
           
-            lock3.lock();
-            
-            System.out.println("item unbid is called");
+            lock1.lock();
+
             if (highestBids.containsKey(listingID)) {
-                lock3.unlock();
+                lock1.unlock();
                 return false;
                 
             }
             else{
-                lock3.unlock();
+                lock1.unlock();
                 return true;
             }
             
 	}
-        
-        
-        //lock1 only for itemsupforbidding and then immediately unlock the same
 
 }

@@ -13,8 +13,10 @@ public class Simulation {
     
      public static void main(String[] args)
     {                
-        int nrSellers = 500;
-        int nrBidders = 2000;
+        int nrSellers = 50;
+        int nrBidders = 70;
+        int spent = 0;
+    
         
         Thread[] sellerThreads = new Thread[nrSellers];
         Thread[] bidderThreads = new Thread[nrBidders];
@@ -63,7 +65,10 @@ public class Simulation {
         {
             try
             {
-                sellerThreads[i].join();
+                                spent += bidders[i].cashSpent();
+
+                bidderThreads[i].join();
+
             }
             catch (InterruptedException e)
             {
@@ -71,6 +76,9 @@ public class Simulation {
             }
         }
         
+        System.out.println("Total amount spent by all bidders: "+spent);
+  
+
         // TODO: Add code as needed to debug
 
         

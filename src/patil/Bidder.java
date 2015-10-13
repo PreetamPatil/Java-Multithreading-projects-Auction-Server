@@ -25,6 +25,7 @@ public class Bidder implements Client{
 
     private Random rand;
     
+    
     private AuctionServer server;
     
     private int mostItemsAvailable = 0;
@@ -49,6 +50,8 @@ public class Bidder implements Client{
     
     public int cashSpent()
     {
+        
+        
         return this.initialCash - this.cash;
     }
     
@@ -73,9 +76,7 @@ public class Bidder implements Client{
         for (int i = 0; (i < cycles && cash > 0) || activeBids.size() > 0; ++i)
         {
             List<Item> items = server.getItems();
-            
-            
-                        
+        
             if (items.size() > this.mostItemsAvailable) { 
                 
             this.mostItemsAvailable = items.size();
@@ -87,12 +88,9 @@ public class Bidder implements Client{
                 
                 int index = rand.nextInt(items.size());
 
-                
                 Item item = items.get(index);
                 items.remove(index);
-                
-               
-                
+           
                 int price = server.itemPrice(item.listingID());
                 if (price < this.cash - sumActiveBids)
                 {
@@ -101,15 +99,17 @@ public class Bidder implements Client{
                     // has already increased, then this bid should be invalid.
                     boolean success = server.submitBid(this.name(), item.listingID(), price + 1);
                     
-
                     if (success)
                     {
+
                         if (!activeBidPrices.containsKey(item))
                         {
+                            
                             activeBids.add(item);
                         }
                         else
                         {
+                            
                             sumActiveBids -= activeBidPrices.get(item);
                         }
                         
@@ -124,8 +124,11 @@ public class Bidder implements Client{
 
             List<Item> newActiveBids = new ArrayList<Item>();
             Hashtable<Item, Integer> newActiveBidPrices = new Hashtable<Item, Integer>();
+            
+ 
             for (Item bid : activeBids)
             {
+                
                 switch (server.checkBidStatus(this.name(), bid.listingID()))
                 {
                     case 1:
@@ -134,7 +137,7 @@ public class Bidder implements Client{
                         int finalPrice = activeBidPrices.get(bid);
                         this.cash -= finalPrice;
                         sumActiveBids -= finalPrice;
-
+                      
                         break;
 
                     case 2:
@@ -157,8 +160,11 @@ public class Bidder implements Client{
                 }
             }
 
+            
+            
             activeBids = newActiveBids;
             activeBidPrices = newActiveBidPrices;
+            
             
             try
             {
